@@ -1,0 +1,14 @@
+# Render Blueprint: connect the GitHub repo, then New > Blueprint.
+services:
+  - type: web
+    name: the-daily-tin-tuc
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: bai2
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.9

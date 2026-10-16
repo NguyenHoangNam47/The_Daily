@@ -1,0 +1,60 @@
+{
+  "collectedAt": "2026-10-08T07:49:10.394557+00:00",
+  "minimumPerCategory": 10,
+  "totalUniquePosts": 92,
+  "categoryCounts": {
+    "latest": 10,
+    "the-gioi": 10,
+    "quan-su": 10,
+    "phan-tich": 10,
+    "the-gioi-do-day": 10,
+    "kieu-bao": 10,
+    "thoi-su": 10,
+    "chinh-tri": 10,
+    "giao-thong": 10,
+    "moi-truong": 10,
+    "nong-tren-mang": 10
+  },
+  "errors": [
+    {
+      "category": "latest",
+      "page": "https://dantri.com.vn/tin-moi-nhat/trang-2.htm",
+      "error": "404 Client Error: Not Found for url: https://dantri.com.vn/tin-moi-nhat/trang-2.htm"
+    },
+    {
+      "category": "latest",
+      "page": "https://dantri.com.vn/tin-moi-nhat/trang-3.htm",
+      "error": "404 Client Error: Not Found for url: https://dantri.com.vn/tin-moi-nhat/trang-3.htm"
+    },
+    {
+      "category": "latest",
+      "page": "https://dantri.com.vn/tin-moi-nhat/trang-4.htm",
+      "error": "404 Client Error: Not Found for url: https://dantri.com.vn/tin-moi-nhat/trang-4.htm"
+    },
+    {
+      "category": "latest",
+      "page": "https://dantri.com.vn/tin-moi-nhat/trang-5.htm",
+      "error": "404 Client Error: Not Found for url: https://dantri.com.vn/tin-moi-nhat/trang-5.htm"
+    },
+    {
+      "category": "latest",
+      "url": "https://dantri.com.vn/dt360/de-bao-nhieu-tien-trong-tai-khoan-thi-tro-thanh-khach-vip-ngan-hang-20261008141609405.htm",
+      "error": "Thiếu tiêu đề hoặc nội dung bài viết"
+    },
+    {
+      "category": "latest",
+      "url": "https://dantri.com.vn/cong-nghe/doc-dao-robot-viet-nam-mua-vo-danh-co-20261008120304134.htm",
+      "error": "Thiếu tiêu đề hoặc nội dung bài viết"
+    },
+    {
+      "category": "thoi-su",
+      "url": "https://dantri.com.vn/dt360/nuoc-bat-ngo-tran-ham-biet-thu-tai-san-hang-tram-trieu-chim-trong-nuoc-20261008125138558.htm",
+      "error": "Thiếu tiêu đề hoặc nội dung bài viết"
+    },
+    {
+      "category": "giao-thong",
+      "url": "https://dantri.com.vn/thoi-su/o-to-khach-boc-chay-ngun-ngut-tren-duong-deo-o-lao-cai-20261005133455564.htm",
+      "error": "HTTPSConnectionPool(host='dantri.com.vn', port=443): Read timed out. (read timeout=20)"
+    }
+  ]
+}
