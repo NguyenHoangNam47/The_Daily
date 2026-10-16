@@ -41,7 +41,7 @@ function belongs(post,c){if(c==='latest'||c==='home')return true;const ids=[...(
 function sortedPosts(){return getPosts().sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0))}
 function primaryCategory(p){return Array.isArray(p.category)?p.category[0]:(p.category||p.categoryIds?.[0]||'latest')}
 function categoryForView(p){return categoryTitle(primaryCategory(p))}
-function safeContent(html){const template=document.createElement('template');template.innerHTML=String(html||'');const allowed=new Set(['P','BR','DIV','SPAN','H2','H3','H4','STRONG','B','EM','I','UL','OL','LI','BLOCKQUOTE','FIGURE','FIGCAPTION','IMG','A']);const walker=document.createTreeWalker(template.content,NodeFilter.SHOW_ELEMENT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);for(const el of nodes){if(!el.parentNode)continue;if(['SCRIPT','STYLE','IFRAME','FORM','OBJECT','EMBED','SVG','MATH','VIDEO','AUDIO'].includes(el.tagName)){el.remove();continue}if(!allowed.has(el.tagName)){el.replaceWith(...el.childNodes);continue}for(const att of [...el.attributes]){if(!(['href','src','alt','title','loading'].includes(att.name)))el.removeAttribute(att.name)}if(el.hasAttribute('href')&&!/^https?:\/\//i.test(el.getAttribute('href')))el.removeAttribute('href');if(el.hasAttribute('src')&&!/^https?:\/\//i.test(el.getAttribute('src')))el.removeAttribute('src');if(el.tagName==='A')el.setAttribute('rel','noopener noreferrer')}return template.innerHTML}
+function safeContent(html){const template=document.createElement('template');template.innerHTML=String(html||'');const allowed=new Set(['P','BR','DIV','SPAN','H2','H3','H4','STRONG','B','EM','I','UL','OL','LI','BLOCKQUOTE','FIGURE','FIGCAPTION','IMG','A']);const walker=document.createTreeWalker(template.content,NodeFilter.SHOW_ELEMENT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);for(const el of nodes){if(!el.parentNode)continue;if(['SCRIPT','STYLE','IFRAME','FORM','OBJECT','EMBED','SVG','MATH','VIDEO','AUDIO'].includes(el.tagName)){el.remove();continue}if(!allowed.has(el.tagName)){el.replaceWith(...el.childNodes);continue}for(const att of [...el.attributes]){if(!(['href','src','alt','title','loading','referrerpolicy'].includes(att.name)))el.removeAttribute(att.name)}if(el.hasAttribute('href')&&!/^https?:\/\//i.test(el.getAttribute('href')))el.removeAttribute('href');if(el.hasAttribute('src')&&!/^https?:\/\//i.test(el.getAttribute('src')))el.removeAttribute('src');if(el.tagName==='A')el.setAttribute('rel','noopener noreferrer');if(el.tagName==='IMG')el.setAttribute('referrerpolicy','no-referrer')}return template.innerHTML}
 // Dữ liệu từ Bài 1 là văn bản thuần có ngắt đoạn bằng hai ký tự xuống dòng.
 // Dữ liệu crawler có thể đã là HTML. Xử lý riêng để giữ ngắt đoạn mà vẫn escape văn bản.
 function renderArticleBody(input){
@@ -54,13 +54,37 @@ function renderArticleBody(input){
     .map(text=>text.trim()).filter(Boolean)
     .map(text=>`<p>${esc(text).replace(/\n/g,'<br>')}</p>`).join('');
 }
-function safeImage(url){return /^https?:\/\//i.test(String(url||''))?esc(url):'assets/img-1.svg'}
+function fallbackImage(post){
+  const text=String(post?.id||post?.title||'news');
+  let hash=0;
+  for(let i=0;i<text.length;i++)hash=(Math.imul(hash,31)+text.charCodeAt(i))>>>0;
+  return `assets/img-${(hash%6)+1}.svg`;
+}
+function safeImage(url,post){
+  return /^https?:\/\//i.test(String(url||''))?esc(url):fallbackImage(post);
+}
+// Một số trang báo không cho website khác nhúng ảnh qua URL gốc.
+// Chỉ bỏ referrer để hỗ trợ ảnh nguồn công khai, không can thiệp bảo vệ website.
+// Nếu ảnh nguồn không tải được, thay bằng hình minh họa lưu sẵn trên THE DAILY.
+function newsImage(post,loading='lazy'){
+  return `<img src="${safeImage(post.image,post)}" alt="${esc(post.title||'Ảnh minh họa')}" referrerpolicy="no-referrer" loading="${loading}" decoding="async" data-fallback="${fallbackImage(post)}">`;
+}
+function installImageFallback(){
+  document.addEventListener('error',event=>{
+    const img=event.target;
+    if(!(img instanceof HTMLImageElement)||img.dataset.fallbackApplied==='1')return;
+    img.dataset.fallbackApplied='1';
+    img.src=img.getAttribute('data-fallback')||'assets/img-1.svg';
+    img.alt='Ảnh minh họa cho tin tức';
+  },true);
+}
+
 function renderNav(){const box=$('#mainNav');if(!box)return;const current=new URLSearchParams(location.search).get('category')||'home';box.innerHTML=getMenu().menu.map(m=>{if(m.type==='external')return `<a href="${m.url}" target="_blank" rel="noopener">${esc(m.title)} ↗</a>`;const sub=m.children?.length?`<div class="submenu">${m.children.map(c=>`<a href="index.html?category=${encodeURIComponent(c.id)}">${esc(c.title)}</a>`).join('')}</div>`:'';return m.children?`<div class="nav-item"><a class="${current===m.id?'active':''}" href="${m.url}">${esc(m.title)} ▾</a>${sub}</div>`:`<a class="${current===m.id?'active':''}" href="${m.url}">${esc(m.title)}</a>`}).join('')+`<a href="crawler.html">Crawler</a>`;$('#menuToggle')?.addEventListener('click',()=>box.classList.toggle('open'))}
-function postCard(p,kind='list'){const link=`article.html?id=${encodeURIComponent(p.id)}`;if(kind==='featured')return `<article class="featured"><a href="${link}"><div class="thumb"><img src="${safeImage(p.image)}" alt=""></div><div class="body"><span class="tag">${esc(categoryForView(p))}</span><h2>${esc(p.title)}</h2><p class="excerpt">${esc(p.excerpt||'')}</p><div class="meta"><span>${esc(p.author||'')}</span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span></div></div></a></article>`;
-if(kind==='side')return `<article class="side-card"><a href="${link}"><div class="thumb"><img src="${safeImage(p.image)}" alt=""></div><h3>${esc(p.title)}</h3><div class="meta"><span>${esc(formatDate(p.publishedAt))}</span></div></a></article>`;
-return `<article class="post-item"><a class="list-thumb" href="${link}"><img src="${safeImage(p.image)}" alt=""></a><div><a href="${link}"><h3>${esc(p.title)}</h3></a><p class="excerpt">${esc(p.excerpt||'')}</p><div class="meta"><span>${esc(p.author||'')}</span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span><span>•</span><span>${esc(categoryForView(p))}</span></div></div></article>`}
+function postCard(p,kind='list'){const link=`article.html?id=${encodeURIComponent(p.id)}`;if(kind==='featured')return `<article class="featured"><a href="${link}"><div class="thumb">${newsImage(p,kind==='featured'?'eager':'lazy')}</div><div class="body"><span class="tag">${esc(categoryForView(p))}</span><h2>${esc(p.title)}</h2><p class="excerpt">${esc(p.excerpt||'')}</p><div class="meta"><span>${esc(p.author||'')}</span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span></div></div></a></article>`;
+if(kind==='side')return `<article class="side-card"><a href="${link}"><div class="thumb">${newsImage(p)}</div><h3>${esc(p.title)}</h3><div class="meta"><span>${esc(formatDate(p.publishedAt))}</span></div></a></article>`;
+return `<article class="post-item"><a class="list-thumb" href="${link}">${newsImage(p)}</a><div><a href="${link}"><h3>${esc(p.title)}</h3></a><p class="excerpt">${esc(p.excerpt||'')}</p><div class="meta"><span>${esc(p.author||'')}</span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span><span>•</span><span>${esc(categoryForView(p))}</span></div></div></article>`}
 function renderHome(){const host=$('#categoryPage');if(!host)return;const params=new URLSearchParams(location.search), c=params.get('category')||'latest';const all=sortedPosts();const posts=all.filter(p=>belongs(p,c));$('#pageTitle').textContent=categoryTitle(c);$('#breadcrumbCat').textContent=categoryTitle(c);const count=$('#postCount');if(count)count.textContent=(c==='latest'||c==='home')?`${posts.length} bài viết • Cập nhật từ dữ liệu tin tức của bạn`:`${posts.length} bài trong chuyên mục • ${all.length} bài trên toàn website`;if(!posts.length){host.innerHTML='<div class="empty">Chưa có bài viết trong chuyên mục này. Hãy nhập posts.json của Bài 1 ở trang Dữ liệu & Crawler, hoặc crawl một bài từ URL.</div>';return}const [a,b,d,...rest]=posts;host.innerHTML=`<section class="hero-grid">${postCard(a,'featured')}<div class="side-stack">${b?postCard(b,'side'):''}${d?postCard(d,'side'):''}</div></section><div class="list-heading"><div><span class="eyebrow">KHÁM PHÁ THÊM</span><h2>Tin tức đáng chú ý</h2></div><span class="list-indicator">${rest.length} bài viết</span></div><section class="post-list">${rest.map(p=>postCard(p)).join('')}</section>`}
-function renderArticle(){const host=$('#articlePage');if(!host)return;const id=new URLSearchParams(location.search).get('id'), p=getPosts().find(x=>x.id===id);if(!p){host.innerHTML='<div class="empty">Không tìm thấy bài viết.</div>';return}document.title=p.title+' - The Daily';host.innerHTML=`<div class="breadcrumb"><a href="index.html">Trang chủ</a> / <a href="index.html?category=${encodeURIComponent(primaryCategory(p))}">${esc(categoryForView(p))}</a></div><span class="tag">${esc(categoryForView(p))}</span><h1>${esc(p.title)}</h1><p class="lead">${esc(p.excerpt||'')}</p><div class="meta"><span><strong>${esc(p.author||'Không rõ tác giả')}</strong></span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span><span>•</span><span>Nguồn: ${esc(p.source||'')}</span></div>${p.image?`<div class="article-cover"><img src="${safeImage(p.image)}" alt=""></div>`:''}<div class="article-content">${renderArticleBody(p.content)}</div>`}
+function renderArticle(){const host=$('#articlePage');if(!host)return;const id=new URLSearchParams(location.search).get('id'), p=getPosts().find(x=>x.id===id);if(!p){host.innerHTML='<div class="empty">Không tìm thấy bài viết.</div>';return}document.title=p.title+' - The Daily';host.innerHTML=`<div class="breadcrumb"><a href="index.html">Trang chủ</a> / <a href="index.html?category=${encodeURIComponent(primaryCategory(p))}">${esc(categoryForView(p))}</a></div><span class="tag">${esc(categoryForView(p))}</span><h1>${esc(p.title)}</h1><p class="lead">${esc(p.excerpt||'')}</p><div class="meta"><span><strong>${esc(p.author||'Không rõ tác giả')}</strong></span><span>•</span><span>${esc(formatDate(p.publishedAt))}</span><span>•</span><span>Nguồn: ${esc(p.source||'')}</span></div>${p.image?`<div class="article-cover">${newsImage(p,'eager')}</div>`:''}<div class="article-content">${renderArticleBody(p.content)}</div>`}
 // Footer dùng chung để 3 trang có đủ mục và các liên kết hoạt động thống nhất.
 // Liên kết MXH dẫn tới trang chủ của nền tảng, không giả là tài khoản THE DAILY.
 function renderFooter(){
@@ -96,6 +120,7 @@ function renderFooter(){
   </div>`;
 }
 document.addEventListener('DOMContentLoaded',async()=>{
+  installImageFallback();
   await initData();
   renderNav();
   renderHome();
